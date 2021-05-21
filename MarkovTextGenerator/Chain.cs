@@ -9,12 +9,14 @@ namespace MarkovTextGenerator
     public class Chain
     {
         public Dictionary<String, List<Word>> words;
+        private List<String> startingWords;
         private Dictionary<String, int> sums;
         private Random rand;
 
-        public Chain ()
+        public Chain()
         {
             words = new Dictionary<String, List<Word>>();
+            startingWords = new List<String>();
             sums = new Dictionary<string, int>();
             rand = new Random(System.Environment.TickCount);
         }
@@ -25,9 +27,21 @@ namespace MarkovTextGenerator
         /// a separate list of actual sentence starting words and randomly choose from that
         /// </summary>
         /// <returns></returns>
-        public String GetRandomStartingWord ()
+
+        public List<String> StartingWords()
         {
-            return words.Keys.ElementAt(rand.Next() % words.Keys.Count);
+
+            return startingWords;
+        }
+        public String GetRandomStartingWord()
+        {
+            StartingWords();
+
+            Random random = new Random();
+            int randomNum = random.Next(0, startingWords.Count - 1);
+
+            String startingWord = startingWords.ElementAt(randomNum).ToString();
+            return startingWord;//words.Keys.ElementAt(rand.Next() % words.Keys.Count);
         }
 
         // Adds a sentence to the chain
@@ -40,8 +54,29 @@ namespace MarkovTextGenerator
         //  AddPair("on", "fire")
         //  AddPair("fire", "")
 
-        public void AddString (String sentence)
+        public void AddString(String sentence)
         {
+            var parts = sentence.Split(' ').ToList();
+
+            for (int i = 0; i < parts.Count - 1; i++)
+            {
+                if (i == 0)
+                {
+                    startingWords.Add(parts[i]);
+                }
+
+                if (i < parts.Count - 1)
+                {
+                    AddPair(parts[i], parts[i + 1]);
+                }
+
+                else
+                {
+                    AddPair(parts[i], "");
+                }
+            }
+
+
             // TODO: Break sentence up into word pairs
             // TODO: Add each word pair to the chain
             // TODO: The last word of any sentence will be paired up with
@@ -87,17 +122,29 @@ namespace MarkovTextGenerator
         /// </summary>
         /// <param name="word"></param>
         /// <returns></returns>
-        public String GetNextWord (String word)
+        public String GetNextWord(String word)
         {
             if (words.ContainsKey(word))
             {
                 List<Word> choices = words[word];
                 double test = rand.NextDouble();
 
-                Console.WriteLine("I picked the number " + test); 
+                double sum = 0;
+
+                foreach (Word t in choices)
+                {
+                    sum += t.Probability;
+
+                    if (sum > test)
+                    {
+                        return t.ToString();
+                    }
+                }
+
+                //Console.WriteLine("I picked the number " + test); 
             }
 
-            return "idkbbq";
+            return "";
         }
 
         /// <summary>
@@ -106,11 +153,23 @@ namespace MarkovTextGenerator
         /// </summary>
         /// <param name="startingWord"></param>
         /// <returns></returns>
-        public String GenerateSentence(string startingWord)
+        public String GenerateSentence(string startingword)
         {
-            return "";
+
+            String sentence = startingword;
+            string word = startingword;
+
+            while (!word.Equals(""))
+            {
+                string newWord = GetNextWord(word);
+                word = newWord;
+                sentence = sentence + " " + newWord;
+            }
+
+
+            return sentence;
         }
-        
+
         /// <summary>
         /// Updates the probability of choosing a second word at random
         /// for a chain of words attached to a first word.
@@ -123,7 +182,7 @@ namespace MarkovTextGenerator
         /// - cat would have a probability of 0.66 (appears 66% of the time)
         /// - dog would have a probability of 0.33 (appears 33% of the time)
         /// </summary>
-        public void UpdateProbabilities ()
+        public void UpdateProbabilities()
         {
             foreach (String word in words.Keys)
             {
